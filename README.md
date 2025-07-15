@@ -13,7 +13,7 @@ Backend for CocoMaterial project
 
 1. Run postgres
    ```sh
-   $ docker run -d --name coco -p 5432:5432 -e POSTGRES_USER=coco -e POSTGRES_DB=coco -e POSTGRES_PASSWORD=coco postgres:12.3
+   $ docker run -d --name coco -p 5432:5432 -e POSTGRES_USER=coco -e POSTGRES_DB=coco -e POSTGRES_PASSWORD=coco postgres:15
    ```
 
 2. Create virtualenv and install dependencies

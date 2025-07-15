@@ -50,14 +50,14 @@ class VectorAdmin(admin.ModelAdmin):
         'description',
         'svg_image_thumb', 'colored_svg_image_thumb',  'stroke_color', 'fill_color',
         'gif_image_thumb', 'colored_gif_image_thumb',
-        'name', 'tags',
+        'name', 'tag_list',
     ]
     readonly_fields = [
         'svg_image', 'svg_image_thumb', 'colored_svg_image', 'colored_svg_image_thumb',
         'gif_image', 'gif_image_thumb', 'colored_gif_image', 'colored_gif_image_thumb',
         'search_text', 'uploaded'
     ]
-    list_editable = ['name', 'stroke_color', 'fill_color', 'tags']
+    list_editable = ['name', 'stroke_color', 'fill_color']
     # list_filter = [
     #     ('tags', RelatedDropdownFilter),
     #     ("colored_svg", admin.EmptyFieldListFilter),
@@ -83,44 +83,57 @@ class VectorAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related('tags')
 
+    def tag_list(self, obj):
+        return u", ".join(t.name for t in obj.tags.all())
+
     # Svg files
     def svg_image(self, obj):
-        if not obj.svg: return ""
+        if not obj.svg:
+            return ""
         return mark_safe(f'<img src="{obj.svg.url}" width=128 height=128 />')
 
     @admin.display(description="SVG (b/w)")
     def svg_image_thumb(self, obj):
-        if not obj.svg: return ""
+        if not obj.svg:
+            return ""
         return mark_safe(f'<img src="{obj.svg.url}" width=70 height=70 />')
 
     def colored_svg_image(self, obj):
-        if not obj.colored_svg_content: return ""
-        base64_svg = base64.b64encode(obj.colored_svg_content.encode('utf-8')).decode('utf-8')
+        if not obj.colored_svg_content:
+            return ""
+        base64_svg = base64.b64encode(
+            obj.colored_svg_content.encode('utf-8')).decode('utf-8')
         return mark_safe(f'<img src="data:image/svg+xml;base64,{base64_svg}" width=128 height=128 />')
 
     @admin.display(description="SVG (color)")
     def colored_svg_image_thumb(self, obj):
-        if not obj.colored_svg_content: return ""
-        base64_svg = base64.b64encode(obj.colored_svg_content.encode('utf-8')).decode('utf-8')
+        if not obj.colored_svg_content:
+            return ""
+        base64_svg = base64.b64encode(
+            obj.colored_svg_content.encode('utf-8')).decode('utf-8')
         return mark_safe(f'<img src="data:image/svg+xml;base64,{base64_svg}" width=70 height=70 />')
 
     # Gif files
     def gif_image(self, obj):
-        if not obj.gif: return ""
+        if not obj.gif:
+            return ""
         return mark_safe(f'<img src="{obj.gif.url}" width=128 height=128 />')
 
     @admin.display(description="GIF (b/w)")
     def gif_image_thumb(self, obj):
-        if not obj.gif: return ""
+        if not obj.gif:
+            return ""
         return mark_safe(f'<img src="{obj.gif.url}" width=70 height=70 />')
 
     def colored_gif_image(self, obj):
-        if not obj.colored_gif: return ""
+        if not obj.colored_gif:
+            return ""
         return mark_safe(f'<img src="{obj.colored_gif.url}" width=128 height=128 />')
 
     @admin.display(description="GIF (color)")
     def colored_gif_image_thumb(self, obj):
-        if not obj.colored_gif: return ""
+        if not obj.colored_gif:
+            return ""
         return mark_safe(f'<img src="{obj.colored_gif.url}" width=70 height=70 />')
 
     # Actions
@@ -161,14 +174,16 @@ class VectorAdmin(admin.ModelAdmin):
             # Return zip file
             with open(zip_file_name, 'rb') as f:
                 zip_file = f.read()
-                response = HttpResponse(zip_file, content_type='application/zip')
-                response['Content-Disposition'] = f'attachment; filename="{zip_name}"'
+                response = HttpResponse(
+                    zip_file, content_type='application/zip')
+                response['Content-Disposition'] = f'attachment; filename="{
+                    zip_name}"'
                 return response
 
 
 @admin.register(Featured)
 class FeaturedAdmin(SortableAdminMixin, admin.ModelAdmin):
-    list_display = [ 'order', 'name', 'tag']
+    list_display = ['order', 'name', 'tag']
     list_display_links = ['name']
     list_editable = ['tag']
     sortable_by = []

@@ -1,0 +1,22 @@
+services:
+  coco_material_db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: "${COCO_DB_USER:-coco}"
+      POSTGRES_PASSWORD: "${COCO_DB_PASSWORD:-coco}"
+      POSTGRES_DB: "${COCO_DB_NAME:-coco}"
+      PGDATA: /data/postgres
+    volumes:
+      - coco_material_db:/data/postgres
+    ports:
+      - ${COCO_DB_PORT:-5432}:5432
+    networks:
+      - coco_material
+    restart: unless-stopped
+
+networks:
+  coco_material:
+    driver: bridge
+
+volumes:
+  coco_material_db:
