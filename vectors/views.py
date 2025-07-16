@@ -16,6 +16,7 @@ from vectors.models import Vector
 from vectors.serializers import SuggestionSerializer
 from vectors.services import taiga as taiga_services
 from vectors.services import images as images_services
+from vectors.filters import TagsFilter
 
 
 class Download(APIView):
@@ -39,7 +40,8 @@ class Download(APIView):
         # filter by img format
         if img_format == 'gif':
             if suggested:
-                queryset = queryset.exclude(colored_gif="").exclude(colored_gif__isnull=True)
+                queryset = queryset.exclude(colored_gif="").exclude(
+                    colored_gif__isnull=True)
             else:
                 queryset = queryset.exclude(gif="").exclude(gif__isnull=True)
         elif img_format != 'both':
@@ -51,17 +53,18 @@ class Download(APIView):
             if 'all' in tags:
                 queryset = queryset.all()
             else:
-                for tag in tags:
-                    queryset = queryset.filter(tags__name=tag)
+                queryset = TagsFilter().filter(
+                    queryset, request.query_params['tags'])
 
-        else: # id in request.query_params
+        else:  # id in request.query_params
             vector_id = request.query_params['id']
             queryset = queryset.filter(id=vector_id)
 
         vectors = queryset.distinct()
 
         if not vectors:
-            response = Response({'error': 'there are no vectors with these params'}, status=400)
+            response = Response(
+                {'error': 'there are no vectors with these params'}, status=400)
             return response
 
         # prepare bulk/zip
@@ -76,11 +79,14 @@ class Download(APIView):
                     for vector in vectors:
                         if suggested:
                             if vector.colored_svg:
-                                images_services.customize_vector(vector.colored_svg, directory, None, None)
+                                images_services.customize_vector(
+                                    vector.colored_svg, directory, None, None)
                             else:
-                                images_services.customize_vector(vector.svg, directory, vector.stroke_color, vector.fill_color)
+                                images_services.customize_vector(
+                                    vector.svg, directory, vector.stroke_color, vector.fill_color)
                         else:
-                            images_services.customize_vector(vector.svg, directory, new_stroke, new_fill)
+                            images_services.customize_vector(
+                                vector.svg, directory, new_stroke, new_fill)
 
                     # crear un zip con todos los svgs
                     svgs = pathlib.Path(directory).glob('*.svg')
@@ -94,11 +100,14 @@ class Download(APIView):
                     for vector in vectors:
                         if suggested:
                             if vector.colored_svg:
-                                images_services.customize_vector(vector.colored_svg, directory)
+                                images_services.customize_vector(
+                                    vector.colored_svg, directory)
                             else:
-                                images_services.customize_vector(vector.svg, directory, vector.stroke_color, vector.fill_color)
+                                images_services.customize_vector(
+                                    vector.svg, directory, vector.stroke_color, vector.fill_color)
                         else:
-                            images_services.customize_vector(vector.svg, directory, new_stroke, new_fill)
+                            images_services.customize_vector(
+                                vector.svg, directory, new_stroke, new_fill)
 
                     # por cada vector en la carpeta, exportarlo a PNG
                     svgs = pathlib.Path(directory).glob('*.svg')
@@ -117,11 +126,14 @@ class Download(APIView):
                     for vector in vectors.exclude(svg="").exclude(svg__isnull=True):
                         if suggested:
                             if vector.colored_svg:
-                                images_services.customize_vector(vector.colored_svg, directory)
+                                images_services.customize_vector(
+                                    vector.colored_svg, directory)
                             else:
-                                images_services.customize_vector(vector.svg, directory, vector.stroke_color, vector.fill_color)
+                                images_services.customize_vector(
+                                    vector.svg, directory, vector.stroke_color, vector.fill_color)
                         else:
-                            images_services.customize_vector(vector.svg, directory, new_stroke, new_fill)
+                            images_services.customize_vector(
+                                vector.svg, directory, new_stroke, new_fill)
 
                     # por cada svg en la carpeta, exportarlo a PNG
                     svgs = pathlib.Path(directory).glob('*.svg')
@@ -130,8 +142,8 @@ class Download(APIView):
 
                     # por cada vector con gif
                     gif_vectors = (vectors
-                        .exclude(gif="", colored_gif="")
-                        .exclude(gif__isnull=True, colored_gif__isnull=True))
+                                   .exclude(gif="", colored_gif="")
+                                   .exclude(gif__isnull=True, colored_gif__isnull=True))
 
                     for vector in gif_vectors:
                         if suggested:
@@ -153,8 +165,10 @@ class Download(APIView):
 
                 with open(zip_file_name, 'rb') as f:
                     zip_file = f.read()
-                    response = HttpResponse(zip_file, content_type='application/zip')
-                    response['Content-Disposition'] = f'attachment; filename="{zip_name}"'
+                    response = HttpResponse(
+                        zip_file, content_type='application/zip')
+                    response['Content-Disposition'] = f'attachment; filename="{
+                        zip_name}"'
                     return response
 
         # just one file
@@ -168,35 +182,44 @@ class Download(APIView):
                             svg = vector.colored_svg
                             path = svg.path
                         else:
-                            images_services.customize_vector(vector.svg, directory, vector.stroke_color, vector.fill_color)
+                            images_services.customize_vector(
+                                vector.svg, directory, vector.stroke_color, vector.fill_color)
                             svg = next(pathlib.Path(directory).glob('*.svg'))
                             path = str(svg)
                     else:
-                        images_services.customize_vector(vector.svg, directory, new_stroke, new_fill)
+                        images_services.customize_vector(
+                            vector.svg, directory, new_stroke, new_fill)
                         svg = next(pathlib.Path(directory).glob('*.svg'))
                         path = str(svg)
 
                     with open(path, 'rb') as f:
                         response_file = f.read()
-                        response = HttpResponse(response_file, content_type='image/svg+xml')
-                        response['Content-Disposition'] = f'attachment; filename="{svg.name}"'
+                        response = HttpResponse(
+                            response_file, content_type='image/svg+xml')
+                        response['Content-Disposition'] = f'attachment; filename="{
+                            svg.name}"'
                         return response
 
                 elif img_format == 'png':
                     if suggested and vector.colored_svg:
-                        images_services.customize_vector(vector.colored_svg, directory)
+                        images_services.customize_vector(
+                            vector.colored_svg, directory)
                     else:
-                        images_services.customize_vector(vector.svg, directory, new_stroke, new_fill)
+                        images_services.customize_vector(
+                            vector.svg, directory, new_stroke, new_fill)
 
                     svg = next(pathlib.Path(directory).glob('*.svg'))
                     new_name = svg.name.replace('svg', 'png')
 
                     images_services.export_to_png(svg, size)
-                    returning_file = next(pathlib.Path(directory).glob('*.png'))
+                    returning_file = next(
+                        pathlib.Path(directory).glob('*.png'))
                     with open(returning_file, 'rb') as f:
                         response_file = f.read()
-                        response = HttpResponse(response_file, content_type='image/png')
-                        response['Content-Disposition'] = f'attachment; filename="{new_name}"'
+                        response = HttpResponse(
+                            response_file, content_type='image/png')
+                        response['Content-Disposition'] = f'attachment; filename="{
+                            new_name}"'
                         return response
 
                 # si el formato es gif
@@ -206,8 +229,10 @@ class Download(APIView):
 
                     with open(path, 'rb') as f:
                         response_file = f.read()
-                        response = HttpResponse(response_file, content_type='image/gif')
-                        response['Content-Disposition'] = f'attachment; filename="{gif.name}"'
+                        response = HttpResponse(
+                            response_file, content_type='image/gif')
+                        response['Content-Disposition'] = f'attachment; filename="{
+                            gif.name}"'
                         return response
 
                 # si el formato es both (png+svg)
@@ -218,11 +243,14 @@ class Download(APIView):
                         # obtener el svg
                         if suggested:
                             if vector.colored_svg:
-                                images_services.customize_vector(vector.colored_svg, directory)
+                                images_services.customize_vector(
+                                    vector.colored_svg, directory)
                             else:
-                                images_services.customize_vector(vector.svg, directory, vector.stroke_color, vector.fill_color)
+                                images_services.customize_vector(
+                                    vector.svg, directory, vector.stroke_color, vector.fill_color)
                         else:
-                            images_services.customize_vector(vector.svg, directory, new_stroke, new_fill)
+                            images_services.customize_vector(
+                                vector.svg, directory, new_stroke, new_fill)
                         svg = next(pathlib.Path(directory).glob('*.svg'))
 
                         # generar el png
@@ -245,8 +273,10 @@ class Download(APIView):
 
                     with open(zip_file_name, 'rb') as f:
                         zip_file = f.read()
-                        response = HttpResponse(zip_file, content_type='application/zip')
-                        response['Content-Disposition'] = f'attachment; filename="{zip_name}"'
+                        response = HttpResponse(
+                            zip_file, content_type='application/zip')
+                        response['Content-Disposition'] = f'attachment; filename="{
+                            zip_name}"'
                         return response
 
     def _parse_params(self, request):
@@ -290,4 +320,3 @@ class Suggestion(CreateAPIView):
 
     def perform_create(self, serializer):
         taiga_services.create_suggestion(serializer.data["suggestion"])
-
