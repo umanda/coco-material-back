@@ -21,10 +21,10 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class VectorViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Vector.objects.all()
+    queryset = Vector.objects.all().order_by('-uploaded')
     pagination_class = StandardResultsSetPagination
     filterset_class = VectorsFilter
-    ordering_fields= ['uploaded']
+    ordering_fields = ['uploaded']
 
     def get_serializer_class(self):
         if self.action == "retrieve":

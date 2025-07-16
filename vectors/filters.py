@@ -35,7 +35,7 @@ class SimilarityFilter(filters.CharFilter):
             qs
             .annotate(similarity=TrigramWordSimilarity(tags, 'search_text'))
             .filter(similarity__gt=0.35)
-            .order_by('-similarity', 'uploaded')
+            .order_by('-similarity', '-uploaded')
         )
 
 
