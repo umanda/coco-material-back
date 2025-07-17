@@ -37,16 +37,6 @@ class Download(APIView):
         # get vectors
         queryset = Vector.objects
 
-        # filter by img format
-        if img_format == 'gif':
-            if suggested:
-                queryset = queryset.exclude(colored_gif="").exclude(
-                    colored_gif__isnull=True)
-            else:
-                queryset = queryset.exclude(gif="").exclude(gif__isnull=True)
-        elif img_format != 'both':
-            queryset = queryset.exclude(svg="").exclude(svg__isnull=True)
-
         # filter by tags
         if 'tags' in request.query_params:
             tags = request.query_params['tags'].split(',')
@@ -64,7 +54,9 @@ class Download(APIView):
 
         if not vectors:
             response = Response(
-                {'error': 'there are no vectors with these params'}, status=400)
+                {'error': 'there are no vectors with these params'},
+                status=400
+            )
             return response
 
         # prepare bulk/zip
@@ -120,6 +112,30 @@ class Download(APIView):
                         for png in pngs:
                             zipfile.write(str(png), basename(png.name))
 
+                elif img_format == 'gif':
+                    # por cada vector con gif
+                    gif_vectors = (vectors
+                                   .exclude(gif="", colored_gif="")
+                                   .exclude(gif__isnull=True, colored_gif__isnull=True))
+
+                    for vector in gif_vectors:
+                        if suggested:
+                            field = vector.colored_gif if vector.colored_gif else vector.gif
+                        else:
+                            field = vector.gif if vector.gif else vector.colored_gif
+
+                        with (
+                            open(f'{directory}/{field.name}', 'wb') as newfile,
+                            open(field.file.name, 'rb') as giffile
+                        ):
+                            newfile.write(giffile.read())
+
+                    # crear un zip con todos los gifs de la carpeta
+                    imgs = pathlib.Path(directory).glob('*.[gif]*')
+                    with ZipFile(zip_file_name, 'w') as zipfile:
+                        for img in imgs:
+                            zipfile.write(str(img), basename(img.name))
+
                 # si el formato es both (png+svg+gif)
                 elif img_format == 'both':
                     # por cada vector con svg, convertirlo en vector editado en la carpeta temporal
@@ -157,7 +173,7 @@ class Download(APIView):
                         ):
                             newfile.write(giffile.read())
 
-                    # crear un zip con todos los svgs y pngs de la carpeta
+                    # crear un zip con todos los svgs, pngs y gifs de la carpeta
                     imgs = pathlib.Path(directory).glob('*.[svg png gif]*')
                     with ZipFile(zip_file_name, 'w') as zipfile:
                         for img in imgs:
