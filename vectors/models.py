@@ -46,7 +46,7 @@ class Vector(models.Model):
         ]
 
     def __str__(self):
-        return self.description
+        return self.description or ""
 
     @cached_property
     def svg_content(self):
